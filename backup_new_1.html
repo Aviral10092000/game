@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title> Game: Ball Blast! </title>
+<style>
+div {
+	display: block;
+	width: 900px;
+	height: 700px;
+	margin: auto;
+	border: 3px solid green;
+	background-color: grey;
+	
+}
+textarea {
+	font-size: 20px;
+}
+</style>
+</head>
+<body bgcolor="grey" onload="function_1()">
+
+<canvas id = "Game_area" width = "600" height = "600" onmouseleave="Enter_game_area()" style = "border:3px solid #d3d3d3;background-color: white;"></canvas>
+<br><br><p>
+
+<h3><b>High Score:</b></h3><textarea id="score" value=0></textarea>
+</p>
+<script type="text/javascript">
+function function_1()
+{
+	
+	document.getElementById("Game_area").value =  localStorage.getItem("maximum");
+	alert("Use 'A' for right motion and 'D' for left motion");
+}
+
+function Enter_game_area()
+{
+
+	score = 0;
+	console.log(localStorage);
+	var text_box = document.getElementById("score");
+	text_box.value = localStorage.getItem("maximum");
+	var canvas = document.getElementById("Game_area");
+	var ctx = canvas.getContext("2d");
+	var bullet = [];
+	var img = new Image();
+	img.src = "cannon.png";
+	var img_rocked_image = new Image(); 
+	var image_background = new Image();
+	image_background.src = "Background.png";
+	img_rocked_image.src = "rocked_images.png";		
+	var img_bullet = new Image();
+	img_bullet.src = "bullet.png"; 
+	var create_sound_for_background = new sound("Game.wav");
+	var state_of_cannon = {
+		x: 0,
+		y: 595
+
+	};
+	odd_number = [];
+	for(var i = 1;i<4800;i = i + 2)
+	odd_number.push(i/8);
+	var lastRender = 0;
+	var progress_for_rock_generation = 0;
+	var display_rocks = 0;
+	var clearing_movement_rock = 0;
+	window.requestAnimationFrame(loop);
+	var music_sound;
+	function loop(timestamp) {
+	  	var progress = timestamp - lastRender;
+	  	ctx.drawImage(image_background,0,0);
+		update(progress);
+  	  	draw();
+  		progress_for_rock_generation = progress_for_rock_generation + progress;
+  		display_rocks = display_rocks + progress;
+  		clearing_movement_rock = clearing_movement_rock + progress;
+  		if(progress_for_rock_generation>6000)
+  		{
+  			progress_for_rock_generation = 0;	
+  			generate_rocks();
+  			
+  		}
+  		music_sound = music_sound + progress;
+  		lastRender = timestamp;
+
+  		window.requestAnimationFrame(loop);
+  		if(1)
+  		{
+  			create_sound_for_background.play();
+  			music_sound = 0;
+  		}
+
+	}
+	function sound(src) {
+  	this.sound = document.createElement("audio");
+  	this.sound.src = src;
+  	this.sound.setAttribute("preload", "auto");
+  	this.sound.setAttribute("controls", "none");
+  	this.sound.style.display = "none";
+  	document.body.appendChild(this.sound);
+  	this.play = function(){
+   		this.sound.play();
+  	}
+  	this.stop = function(){
+    	this.sound.pause();
+  	}
+}
+	function update(progress)
+	{
+		rock_move();
+		motion_of_bullet();
+		check_for_bullet_rock_overlap();
+		check_rock_cannon_overlap();
+	}
+	var x1 = 0;
+	var x2 = 0;
+	var y1 = 0;
+	var y2 = 0;
+	function check_rock_cannon_overlap()
+	{
+		for(var k = 0;k<rocks_arr_object.length;k++)
+		{
+			if(rocks_arr_object[k].height_from_top>575)
+			{
+				if(rocks_arr_object[k].x>state_of_cannon.x&&state_of_cannon.x+80>rocks_arr_object[k].x)
+				{
+					alert("Game Over! Click Ok To restart");
+					ctx.clearRect(0,0,600,600);
+					rocks_arr_object = [];
+					bullet = [];
+					let compare = localStorage.getItem("maximum");
+					if(score>compare)
+					{
+						localStorage.setItem("maximum",score);
+						text_box.value = score;
+						
+					}
+					score = 0;
+					state_of_cannon = {
+										x: 0,
+										y: 595
+									};
+				}
+			}
+		}
+	}
+	function check_for_bullet_rock_overlap()
+	{
+		for(var j = 0;j<rocks_arr_object.length;j++)
+		{
+			for(var i = 0;i<bullet.length;i++)
+			{
+				if(rocks_arr_object.length==0)
+				{
+					break;
+				}
+				x1 = bullet[i].x_of_bullet;
+				y1 = bullet[i].y_of_bullet;
+				
+				if(j<rocks_arr_object.length)
+				{
+					x2 = rocks_arr_object[j].x;
+					y2 = rocks_arr_object[j].height_from_top; 
+				if(((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)< 2000||rocks_arr_object[j].strength==0)&&bullet[i].visibility_state)
+				{
+					ctx.fillStyle = "#ffffff";
+					ctx.beginPath();
+					ctx.arc(bullet[i].x_of_bullet,bullet[i].y_of_bullet,16,0,2*Math.PI);
+					ctx.closePath();
+					ctx.fill();
+					rocks_arr_object[j].strength = rocks_arr_object[j].strength - 1;
+					bullet[i].x_of_bullet = -30;
+					if(rocks_arr_object[j].strength<=0)
+					{
+						ctx.fillStyle = "#ffffff";
+						ctx.beginPath();
+						ctx.arc(rocks_arr_object[j].x,rocks_arr_object[j].height_from_top,35,0,2*Math.PI);
+						ctx.closePath();
+						ctx.fill();
+						
+
+						if(rocks_arr_object[j].strength_split<=1&&rocks_arr_object[j].strength<=0)
+						rocks_arr_object.splice(j,1);
+						else if(rocks_arr_object[j].strength==0)
+						{
+							rocks_arr_object[j].strength_split = parseInt(rocks_arr_object[j].strength_split/2);
+							rocks_arr_object[j].strength = rocks_arr_object[j].strength_split;
+							rocks_arr_object_created = {
+								height_from_top: rocks_arr_object[j].height_from_top,
+								previous_height: rocks_arr_object[j].height_from_top,
+											previous_x: rocks_arr_object[j].previous_x,
+													 x: rocks_arr_object[j].x,
+									   strength: rocks_arr_object[j].strength,
+								 height_compare: rocks_arr_object[j].height_compare,
+												  flag: rocks_arr_object[j].flag,
+												flag_1: rocks_arr_object[j].flag_1,
+												   a_x: !rocks_arr_object[j].a_x,
+												   b_x: rocks_arr_object[j].b_x,
+								  strength_split: rocks_arr_object[j].strength_split
+								};
+							rocks_arr_object.push(rocks_arr_object_created);
+						}
+					}
+					else
+					{
+						score = score + 10;
+						ctx.clearRect(300,0,50,70);
+						ctx.font = "30px Georgia";
+						ctx.fillStyle = "#000000";
+						ctx.fillText(score,300,50);
+					}
+
+					}
+					
+				}
+			}
+		}
+	}
+	function rock_move()
+	{
+		x_movement();
+		y_movement();
+	}
+
+	function motion_of_bullet()
+	{
+		var count = 0;
+		if(bullet.length==0)
+		{
+			bullet[0] = {
+				x_of_bullet: 40 + state_of_cannon.x,
+				y_of_bullet: 580,
+				visibility_state: true 
+			};
+		}
+		
+		for(var k=0;k<bullet.length;k++)
+		{
+			ctx.fillStyle = "#ffffff";
+			ctx.beginPath();
+			ctx.arc(bullet[k].x_of_bullet,bullet[k].y_of_bullet,17,0,2*Math.PI);
+			ctx.closePath();
+			ctx.fill();
+			draw_cannon();
+				
+				bullet[k].y_of_bullet = bullet[k].y_of_bullet - 10;
+				ctx.fillStyle = "#00ff33";
+				ctx.beginPath();
+				//ctx.arc(bullet[k].x_of_bullet,bullet[k].y_of_bullet,10,0,2*Math.PI);
+				ctx.drawImage(img_bullet,bullet[k].x_of_bullet-10,bullet[k].y_of_bullet-10);
+				ctx.closePath();
+				ctx.fill();
+				ctx.clearRect(0,0,600,40);
+				ctx.font = "30px Georgia";
+				ctx.fillStyle = "#000000";
+				ctx.fillText(score,300,50);
+
+			
+			if(bullet[k].y_of_bullet==(100 + score)&&score<300)
+			{
+				bullet_created = {
+				x_of_bullet: 40 + state_of_cannon.x,
+				y_of_bullet: 580,
+				visibility_state: true 
+				};
+				bullet.push(bullet_created);
+			}
+
+			if(bullet[k].y_of_bullet<-10)
+			{
+				bullet.splice(k,1);
+				count++;
+			}
+			
+		}
+
+	}
+	function x_movement()
+	{
+
+		for(var j = 0;j<rocks_arr_object.length;j++)
+		{
+			
+				if(rocks_arr_object[j].x>600)
+				{
+					rocks_arr_object[j].a_x = 0;
+				}
+				else if(rocks_arr_object[j].x<0)
+				{
+					rocks_arr_object[j].a_x = 1;
+				}
+				if(rocks_arr_object[j].a_x)
+				{
+					rocks_arr_object[j].previous_x = rocks_arr_object.x;
+					rocks_arr_object[j].x = rocks_arr_object[j].x + 4;
+				}
+				else
+				{
+					rocks_arr_object[j].previous_x = rocks_arr_object.x;
+					rocks_arr_object[j].x = rocks_arr_object[j].x - 4;
+				}
+			
+		}
+	}
+	function y_movement()
+	{
+		for(var k = 0;k<rocks_arr_object.length;k++)
+		{
+			rocks_arr_object[k].previous_height = rocks_arr_object[k].height_from_top;
+			if(rocks_arr_object[k].height_from_top>=600)
+			{
+				rocks_arr_object[k].b_x = -1;
+				
+			}
+			else if(rocks_arr_object[k].height_from_top<=rocks_arr_object[k].height_compare||rocks_arr_object[k].flag == 0)
+			{
+				rocks_arr_object[k].b_x = 1;
+				rocks_arr_object[k].flag = 0;
+				ctx.fillStyle = "#ffffff";
+				ctx.beginPath();
+				ctx.arc(rocks_arr_object[k].x,rocks_arr_object[k].height_from_top,35,0,2*Math.PI);
+				ctx.closePath();
+				ctx.fill();
+				rocks_arr_object[k].height_from_top = rocks_arr_object[k].height_compare;
+			}
+			rocks_arr_object[k].flag = rocks_arr_object[k].flag + rocks_arr_object[k].b_x;
+			ctx.fillStyle = "#ffffff";
+			ctx.beginPath();
+			ctx.arc(rocks_arr_object[k].x,rocks_arr_object[k].height_from_top,43,0,2*Math.PI);
+			ctx.closePath();
+			ctx.fill();
+			rocks_arr_object[k].height_from_top = rocks_arr_object[k].height_from_top + (0.8)*rocks_arr_object[k].b_x*odd_number[rocks_arr_object[k].flag];
+			ctx.fillStyle = "#ffffff";
+			ctx.beginPath();
+			ctx.arc(rocks_arr_object[k].previous_x,rocks_arr_object[k].previous_height,43,0,2*Math.PI);
+			ctx.closePath();
+			ctx.stroke();
+			ctx.fill();
+			ctx.fillStyle = "#FF9900";
+			ctx.beginPath();
+			//ctx.arc(rocks_arr_object[k].x,rocks_arr_object[k].height_from_top,30,0,2*Math.PI);
+			ctx.drawImage(img_rocked_image,rocks_arr_object[k].x-30,rocks_arr_object[k].height_from_top-30);
+			ctx.closePath();
+			ctx.fill();
+			ctx.fillStyle = "#000000";
+			ctx.font = "20px Georgia";
+			ctx.fillText(rocks_arr_object[k].strength,rocks_arr_object[k].x-5,rocks_arr_object[k].height_from_top-5);
+
+		}
+	}
+	function control_object()
+	{
+		document.addEventListener('keydown', keyDownHandler, false); 
+	}
+	function draw()
+	{
+		clear_cannon_location();
+		draw_cannon();
+	}
+	function clear_cannon_location()
+	{
+		
+		ctx.clearRect(0 + state_of_cannon.x,550,10,50);
+		ctx.clearRect(0 + state_of_cannon.x,550,90,50);
+
+		
+	}
+	function draw_cannon()
+	{
+		document.addEventListener('keydown', keyDownHandler, false);
+		ctx.fillStyle = "#ff0000";
+		ctx.beginPath();
+		ctx.drawImage(img,0+state_of_cannon.x,550);
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+	}
+	height_rock_ground = 0;
+	strength_rock = 0;
+	function generate_rocks()
+	{
+		height_rock_ground = parseInt(Math.random()*1000);
+		height_rock_ground = height_rock_ground%300;
+		height_rock_ground = height_rock_ground + 50;
+		strength_rock = parseInt(Math.random()*1000);
+		strength_rock = strength_rock%10;
+		strength_rock = strength_rock + 1;
+		generate_rocks_array(height_rock_ground,strength_rock);
+	}
+	function keyDownHandler(event)
+	{
+		if(event.keyCode == 65)
+			{
+				if(state_of_cannon.x>0)
+				{
+					state_of_cannon.x = state_of_cannon.x - 10;
+				}
+				
+			}
+		else if(event.keyCode==68)
+			{
+				if(state_of_cannon.x<520)
+				{
+					state_of_cannon.x = state_of_cannon.x + 10;
+				}
+				
+			}
+	}
+	rocks_arr_object = [];
+	function generate_rocks_array(height_1,strength)
+	{
+			rocks_arr_object_created = {
+			height_from_top: height_1,
+			previous_height: height_1,
+			previous_x: 0,
+			x: 0,
+			strength: strength,
+			height_compare: height_1,
+			flag: 0,
+			flag_1: 1,
+			a_x: 1,
+			b_x: 1,
+			strength_split: strength
+		};
+		rocks_arr_object.push(rocks_arr_object_created);
+		
+	}
+}
+</script>
+</body>
+</html>
